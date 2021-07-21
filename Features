@@ -1,0 +1,101 @@
+import pandas as pd
+from IPython.display import display
+import numpy as np
+import datetime as dt
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
+
+train_monthly_info = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_monthly_info.csv',low_memory=False)
+
+train_monthly_info.dtypes
+
+train_monthly_info.memory_usage(deep=True)
+
+train_monthly_info['employee_index'].astype("category")
+train_monthly_info['country'].astype("category")
+train_monthly_info['sex'].astype("category")
+train_monthly_info['employee_index'].astype("category")
+train_monthly_info['customer_type'].astype("category")
+train_monthly_info['customer_relation'].astype("category")
+train_monthly_info['domestic_index'].astype("category")
+train_monthly_info['foreigner_index'].astype("category")
+train_monthly_info['province_name'].astype("category")
+train_monthly_info['channel'].astype("category")
+train_monthly_info['segment'].astype("category")
+
+train_monthly_info.memory_usage(deep=True)
+
+train_accounts = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_accounts.csv',low_memory=False)
+
+xref = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/xref.csv')
+
+monthly=train_monthly_info.merge(xref, how='left')
+
+train_monthly_info.describe(include='all')
+
+train_monthly_info.count()
+
+train_monthly_info['date'] = train_monthly_info['date'].apply(pd.to_datetime, errors='coerce')
+
+train_monthly_info['month']=pd.to_datetime(train_monthly_info['date']).dt.month
+
+train_monthly_info['employee_index']=train_monthly_info['employee_index'].fillna(train_monthly_info['employee_index'].mode())
+
+train_monthly_info['country']=train_monthly_info['country'].fillna(train_monthly_info['country'].mode())
+
+train_monthly_info['Mob']=(pd.to_datetime(train_monthly_info['date'])-pd.to_datetime(train_monthly_info['open_date']))/np.timedelta64(1,'M') 
+
+train_monthly_info['sex'] = train_monthly_info['sex'].fillna(train_monthly_info['sex'].mode())
+
+train_monthly_info['age'] = train_monthly_info['age'].apply(pd.to_numeric, errors='coerce')
+
+train_monthly_info['age'] = train_monthly_info['age'].fillna(train_monthly_info['age'].median())
+
+train_monthly_info['seniority'] = train_monthly_info['seniority'].apply(pd.to_numeric, errors='coerce')
+
+train_monthly_info['seniority'] = train_monthly_info['seniority'].fillna(train_monthly_info['seniority'].median())
+
+train_monthly_info['customer_relation'] = train_monthly_info['customer_relation'].fillna(train_monthly_info['customer_relation'].mode())
+
+train_monthly_info['domestic_index'] = train_monthly_info['domestic_index'].fillna(train_monthly_info['domestic_index'].mode())
+
+train_monthly_info['foreigner_index'] = train_monthly_info['foreigner_index'].fillna(train_monthly_info['foreigner_index'].mode())
+
+train_monthly_info['channel'] = train_monthly_info['channel'].fillna(train_monthly_info['channel'].mode())
+
+train_monthly_info['gross_income'] = train_monthly_info['gross_income'].fillna(train_monthly_info['gross_income'].median())
+
+train_monthly_info['activity_index'] = train_monthly_info['activity_index'].fillna(train_monthly_info['activity_index'].mode())
+
+train_monthly_info['segment'] = train_monthly_info['segment'].fillna(train_monthly_info['segment'].mode())
+
+train_monthly_info['prev_mth']=pd.to_datetime(train_monthly_info['date']) -pd.DateOffset(months=1)
+
+train_monthly_info['prev_mth_2']=pd.to_datetime(train_monthly_info['date']) -pd.DateOffset(months=2)
+
+train_monthly_info.head()
+
+train_accounts['date'] = train_accounts['date'].apply(pd.to_datetime, errors='coerce')
+
+train_accounts_shift_1=train_accounts.add_suffix('_1')
+
+train_accounts_shift_2=train_accounts.add_suffix('_2')
+
+train_monthly_info_shortlist=train_monthly_info[['date','month','cust_id','employee_index','country','Mob','sex','age',
+                                                'seniority','customer_relation','domestic_index','foreigner_index','channel',
+                                                'gross_income','province_name','activity_index','segment','prev_mth','prev_mth_2']]
+
+train_monthly_info_shortlist.head()
+
+temp1 =train_monthly_info_shortlist.merge(xref, how='left')
+
+temp1.head()
+
+temp2 = temp1.merge(train_accounts_shift_1, how='left', 
+                                                 left_on=['prev_mth','cust_key'], right_on = ['date_1','cust_key_1'])
+
+final_train = temp2.merge(train_accounts_shift_2, how='left', 
+                                                 left_on=['prev_mth_2','cust_key'], right_on = ['date_2','cust_key_2'])
+
+final_train.to_csv('C:/Users/s1896755/Downloads/Case/final_train.csv')
