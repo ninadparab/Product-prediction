@@ -1,0 +1,208 @@
+import pandas as pd
+import numpy as np
+import datetime as dt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import average_precision_score
+from xgboost import XGBClassifier
+import random
+
+final_train = pd.read_csv('C:/Users/s1896755/Downloads/Case/final_train.csv',
+                          dtype={'channel': 'category','customer_relation': 'category','segment': 'category'},
+                          parse_dates=['date_1','date_2'])
+
+final_train.head()
+
+p = 0.01  # 1% of the lines
+
+final_train_sample = pd.read_csv(
+         'C:/Users/s1896755/Downloads/Case/final_train.csv',
+         header=0, 
+         skiprows=lambda i: i>0 and random.random() > p , parse_dates=['date_2']
+)
+
+
+final_train_sample.head()
+
+train_accounts = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_accounts.csv',low_memory=False)
+
+train_accounts_sample = final_train_sample[['cust_key','date']].merge(train_accounts, how='left',
+                                                                   left_on=['date','cust_key'], right_on = ['date','cust_key'])
+
+final_train_sample.columns
+
+final_train_sample
+
+x_train = final_train_sample[['cust_id','month','employee_index', 'country',
+       'Mob', 'sex', 'age', 'seniority', 'customer_relation', 'domestic_index',
+       'foreigner_index', 'channel', 'gross_income', 'activity_index',
+       'segment','savings_account_1', 'guarantees_1', 'current_accounts_1',
+       'derived_account_1', 'payroll_account_1', 'junior_account_1',
+       'more_particular_account_1', 'particular_account_1',
+       'particular_plus_account_1', 'short_term_deposits_1',
+       'medium_term_deposits_1', 'long_term_deposits_1', 'e_account_1',
+       'funds_1', 'mortgage_1', 'pensions_1', 'loans_1', 'taxes_1',
+       'credit_card_1', 'securities_1', 'home_account_1', 'payroll_1',
+       'direct_debt_1', 'savings_account_2', 'guarantees_2', 'current_accounts_2', 'derived_account_2',
+       'payroll_account_2', 'junior_account_2', 'more_particular_account_2',
+       'particular_account_2', 'particular_plus_account_2',
+       'short_term_deposits_2', 'medium_term_deposits_2',
+       'long_term_deposits_2', 'e_account_2', 'funds_2', 'mortgage_2',
+       'pensions_2', 'loans_2', 'taxes_2', 'credit_card_2', 'securities_2',
+       'home_account_2', 'payroll_2', 'direct_debt_2']]
+
+x_train.info(verbose=True)
+
+x_train_cat = pd.get_dummies(x_train[['month','employee_index','country','sex','customer_relation','domestic_index','foreigner_index',
+                          'channel','segment']])
+
+x_train_cat
+
+x_train_final =  np.nan_to_num(x_train[['Mob', 'seniority','gross_income', 'activity_index',
+        'savings_account_1', 'guarantees_1', 'current_accounts_1',
+       'derived_account_1', 'payroll_account_1', 'junior_account_1',
+       'more_particular_account_1', 'particular_account_1',
+       'particular_plus_account_1', 'short_term_deposits_1',
+       'medium_term_deposits_1', 'long_term_deposits_1', 'e_account_1',
+       'funds_1', 'mortgage_1', 'pensions_1', 'loans_1', 'taxes_1',
+       'credit_card_1', 'securities_1', 'home_account_1', 'payroll_1',
+       'direct_debt_1', 'savings_account_2', 'guarantees_2', 'current_accounts_2', 'derived_account_2',
+       'payroll_account_2', 'junior_account_2', 'more_particular_account_2',
+       'particular_account_2', 'particular_plus_account_2',
+       'short_term_deposits_2', 'medium_term_deposits_2',
+       'long_term_deposits_2', 'e_account_2', 'funds_2', 'mortgage_2',
+       'pensions_2', 'loans_2', 'taxes_2', 'credit_card_2', 'securities_2',
+       'home_account_2', 'payroll_2', 'direct_debt_2']].join(x_train_cat))
+
+pd.DataFrame(x_train_final)
+
+x_train_final
+
+train_accounts_sample.columns
+
+y_train = train_accounts_sample[['savings_account', 'guarantees', 'current_accounts',
+       'derived_account', 'payroll_account', 'junior_account',
+       'more_particular_account', 'particular_account',
+       'particular_plus_account', 'short_term_deposits',
+       'medium_term_deposits', 'long_term_deposits', 'e_account', 'funds',
+       'mortgage', 'pensions', 'loans', 'taxes', 'credit_card', 'securities',
+       'home_account', 'payroll', 'direct_debt']]
+
+y_train_final =  np.nan_to_num(y_train)
+
+test_monthly_info = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/test/test_monthly_info.csv',low_memory=False)
+
+test_monthly_info
+
+test_monthly_info['date'] = test_monthly_info['date'].apply(pd.to_datetime, errors='coerce')
+
+test_monthly_info['month']=pd.to_datetime(test_monthly_info['date']).dt.month
+
+test_monthly_info['employee_index']=test_monthly_info['employee_index'].fillna(test_monthly_info['employee_index'].mode())
+
+test_monthly_info['country']=test_monthly_info['country'].fillna(test_monthly_info['country'].mode())
+
+test_monthly_info['Mob']=(pd.to_datetime(test_monthly_info['date'])-pd.to_datetime(test_monthly_info['open_date']))/np.timedelta64(1,'M') 
+
+test_monthly_info['sex'] = test_monthly_info['sex'].fillna(test_monthly_info['sex'].mode())
+
+test_monthly_info['age'] = test_monthly_info['age'].apply(pd.to_numeric, errors='coerce')
+
+test_monthly_info['age'] = test_monthly_info['age'].fillna(test_monthly_info['age'].median())
+
+test_monthly_info['seniority'] = test_monthly_info['seniority'].apply(pd.to_numeric, errors='coerce')
+
+test_monthly_info['seniority'] = test_monthly_info['seniority'].fillna(test_monthly_info['seniority'].median())
+
+test_monthly_info['domestic_index'] = test_monthly_info['domestic_index'].fillna(test_monthly_info['domestic_index'].mode())
+
+test_monthly_info['foreigner_index'] = test_monthly_info['foreigner_index'].fillna(test_monthly_info['foreigner_index'].mode())
+
+test_monthly_info['channel'] = test_monthly_info['channel'].fillna(test_monthly_info['channel'].mode())
+
+test_monthly_info['gross_income'] = test_monthly_info['gross_income'].fillna(test_monthly_info['gross_income'].median())
+
+test_monthly_info['activity_index'] = test_monthly_info['activity_index'].fillna(test_monthly_info['activity_index'].mode())
+
+test_monthly_info['segment'] = test_monthly_info['segment'].fillna(test_monthly_info['segment'].mode())
+
+test_monthly_info_shortlist=test_monthly_info[['date','month','cust_id','employee_index','country','Mob','sex','age',
+                                                'seniority','customer_relation','domestic_index','foreigner_index','channel',
+                                                'gross_income','province_name','activity_index','segment']]
+
+test_monthly_info_shortlist
+
+train_accounts = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_accounts.csv',low_memory=False)
+
+xref = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/xref.csv')
+
+train_accounts_mar= train_accounts[train_accounts['date']=='2016-03-28'].add_suffix('_2')
+train_accounts_apr= train_accounts[train_accounts['date']=='2016-04-28'].add_suffix('_1')
+
+train_accounts_apr
+
+temp1 =test_monthly_info_shortlist.merge(xref, how='left')
+
+temp1
+
+temp2 = temp1.merge(train_accounts_apr, how='left', 
+                                                 left_on=['cust_key'], right_on = ['cust_key_1'])
+
+temp2
+
+final_test = temp2.merge(train_accounts_mar, how='left', 
+                                                 left_on=['cust_key'], right_on = ['cust_key_2'])
+
+final_test
+
+final_test_cat = pd.get_dummies(final_test[['month','employee_index','country','sex','customer_relation','domestic_index','foreigner_index',
+                          'channel','segment']])
+
+x_train_cat.columns
+
+final_test_cat.columns.to_list()
+
+final_test_cat1=final_test_cat.iloc[:,final_test_cat.columns.isin(x_train_cat.columns.to_list())]
+
+final_test_cat1
+
+final_test_final =  np.nan_to_num(final_test[['Mob', 'seniority','gross_income', 'activity_index',
+        'savings_account_1', 'guarantees_1', 'current_accounts_1',
+       'derived_account_1', 'payroll_account_1', 'junior_account_1',
+       'more_particular_account_1', 'particular_account_1',
+       'particular_plus_account_1', 'short_term_deposits_1',
+       'medium_term_deposits_1', 'long_term_deposits_1', 'e_account_1',
+       'funds_1', 'mortgage_1', 'pensions_1', 'loans_1', 'taxes_1',
+       'credit_card_1', 'securities_1', 'home_account_1', 'payroll_1',
+       'direct_debt_1', 'savings_account_2', 'guarantees_2', 'current_accounts_2', 'derived_account_2',
+       'payroll_account_2', 'junior_account_2', 'more_particular_account_2',
+       'particular_account_2', 'particular_plus_account_2',
+       'short_term_deposits_2', 'medium_term_deposits_2',
+       'long_term_deposits_2', 'e_account_2', 'funds_2', 'mortgage_2',
+       'pensions_2', 'loans_2', 'taxes_2', 'credit_card_2', 'securities_2',
+       'home_account_2', 'payroll_2', 'direct_debt_2']].join(final_test_cat1))
+
+rnd_clf = RandomForestClassifier(n_estimators=100)
+
+rnd_clf.fit(x_train_final,y_train_final)
+
+y_pred_rf=rnd_clf.predict(final_test_final)
+
+y_pred_rf
+
+y_pred_rf.shape
+
+train_accounts.columns.to_list()[1:24]
+
+output = pd.DataFrame(y_pred_rf, columns=train_accounts.columns.to_list()[1:24])
+
+semifinal = pd.DataFrame(final_test['cust_id']).join(output)
+
+semifinal.to_csv('C:/Users/s1896755/Downloads/Case/semifinal.csv')
+
+semifinal2 = semifinal.loc[:,:].replace(1, pd.Series(semifinal.columns, semifinal.columns)).replace({'0':np.nan, 0:np.nan})
+
+final_products = semifinal2.iloc[:,1:].apply(lambda x: ';'.join(x.dropna().values.tolist()), axis=1)
+
+final_products
+
+final = pd.concat([test_monthly_info['cust_id'], final_products], axis=1).rename(columns={0: "products"})
