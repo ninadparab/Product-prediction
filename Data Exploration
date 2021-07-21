@@ -1,0 +1,103 @@
+import pandas as pd
+from IPython.display import display
+import numpy as np
+import datetime as dt
+
+train_monthly_info = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_monthly_info.csv')
+
+train_monthly_info.count()
+
+#spouse_index not useful
+
+
+train_monthly_info.describe(include='all')
+
+train_monthly_info.head()
+
+
+#checking data in the first month
+
+train_monthly_info_month_1=train_monthly_info.loc[train_monthly_info['date']=='2015-01-28']
+
+train_monthly_info_month_1.count()
+
+train_monthly_info.groupby('date').count()[['cust_id']]
+
+
+
+#number of customers increase over time
+
+train_monthly_info_month_1.head()
+
+for a in train_monthly_info.columns:
+        print(train_monthly_info[a].value_counts())
+
+train_monthly_info.loc[train_monthly_info['seniority']==0]
+
+#not related to the open_date
+
+
+train_monthly_info['employee_index'].value_counts()
+
+train_monthly_info['country'].value_counts()
+
+train_monthly_info['sex'].value_counts()
+
+train_monthly_info['age'].value_counts()
+
+train_monthly_info.head()
+
+train_accounts = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/train_accounts.csv',low_memory=False)
+
+train_accounts.head()
+
+train_accounts.count()
+
+xref = pd.read_csv('C:/Users/s1896755/Downloads/Case/Data/train/xref.csv')
+
+xref.count()
+
+train_monthly_info.loc[train_monthly_info['cust_id']==1050611]
+
+train_accounts.loc[train_accounts['cust_key']==96307372]
+
+duplicate_check=train_monthly_info[train_monthly_info.columns.difference(['date', 'seniority'])].drop_duplicates()
+
+duplicate_check.count()
+
+duplicate_check.groupby(by='cust_id').count().query('age>1')
+
+train_monthly_info.loc[train_monthly_info['cust_id']==15890]
+
+joined = train_monthly_info.merge(xref, how='left').merge(train_accounts, how='left', left_on=['date','cust_key'], right_on = ['date','cust_key'])
+
+joined.head()
+
+joined.count()
+
+pd.options.display.max_columns = None
+display(joined.loc[joined['cust_id']==615727])
+
+joined['quarter']=pd.to_datetime(joined['date']).dt.quarter
+
+joined['employee_index_new']=np.where(joined['employee_index']== 'A', True, False)
+
+joined['country_new']=np.where(joined['country']== 'ES', True, False)
+
+joined['Mob']=(pd.to_datetime(joined['date'])-pd.to_datetime(joined['open_date']))/np.timedelta64(1,'M') 
+
+for cust in train_accounts['cust_key']:
+    train_accounts.loc[train_accounts['cust_key']==cust].sort_values(by=['cust_key', 'date']).shift(1)
+
+for cust in train_accounts.iloc[:1000].groupby('cust_key'):
+    cust.shift(periods=1)
+
+train_accounts.iloc[:1000].shift(periods=1)
+
+pd.options.display.max_rows = 1000
+train_monthly_info['channel'].value_counts()/train_monthly_info['channel'].count()
+
+data_to_train = joined[['cust_id','quarter','employee_index_new','country_new','sex','age','Mob','seniority',
+                                  'customer_relation','domestic_index','foreigner_index','channel','gross_income',
+                                   'activity_index','segment']]
+
