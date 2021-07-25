@@ -1,0 +1,8 @@
+This repository contains the code for Santader product recommendation competition on Kaggle
+
+https://www.kaggle.com/c/santander-product-recommendation
+
+The code is in 3 files
+1. Data exploration
+2. Feature extraction
+3. Model
